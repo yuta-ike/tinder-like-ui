@@ -10,14 +10,23 @@ const ingredients = [
   { item: "ナツメグ（あれば）", amount: "少々" },
 ]
 
-const Card: React.VFC = () => {
+export type CardProps = {
+  title: string
+  showShadow?: boolean
+}
+
+const Card: React.VFC<CardProps> = ({ title, showShadow = false }) => {
   return (
-    <section className="w-[300px] border rounded border-gray-200 p-4 shadow-lg">
+    <section
+      className={`w-[300px] border rounded border-gray-200 p-4 ${
+        showShadow ? "shadow-lg" : ""
+      } bg-white`}
+    >
       <div>
-        <h1 className="text-sm font-bold">レンジで簡単！ジューシーハンバーグ</h1>
+        <h1 className="text-sm font-bold">{title}</h1>
       </div>
       <div className="relative mt-2 overflow-hidden rounded shadow-md">
-        <img src="/public/image1.jpg" alt="" className="drag-none" />
+        <img src="/image1.jpg" alt="" className="drag-none" />
         <div className="absolute bottom-0 right-0 px-1.5 py-0.5 font-bold text-white bg-orange-500 rounded-tl shadow rounded-rb">
           30
           <span className="ml-0.5 text-xs">分</span>

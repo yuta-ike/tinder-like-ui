@@ -120,10 +120,11 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
       <div
         {...divProps}
         onPointerDown={handleDragStart}
-        className={`flex touch-none ${
-          !isDragging ? (isIOSChrome() ? "" : "transition duration-1000") : "select-none"
+        className={`flex touch-none focus:outline-none focus-visible:ring ${
+          !isDragging ? (isIOSChrome() ? "" : "transition-transform duration-1000") : "select-none"
         } ${className}`}
         style={{
+          ...divProps.style,
           transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,
         }}
         ref={(elm) => {
@@ -135,6 +136,7 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
       >
         {children}
       </div>
+      {/* NOTE: For keyboard user */}
       <div className="flex justify-between sr-only focus-within:py-4 focus-within:not-sr-only">
         <button
           className="p-2 bg-gray-100 rounded"

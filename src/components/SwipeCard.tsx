@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { throttle } from "throttle-debounce"
 import { easeOut } from "../utils/animation"
+import { isIOSChrome } from "../utils/userAgentCheck"
 
 export type SwipeCardProps = {
   children: React.ReactNode
@@ -107,7 +108,7 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
     <div
       onPointerDown={handleDragStart}
       className={`flex touch-none ${
-        !isDragging ? "transition duration-1000" : "select-none"
+        !isDragging ? (isIOSChrome() ? "" : "transition duration-1000") : "select-none"
       } ${className}`}
       style={{
         transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,

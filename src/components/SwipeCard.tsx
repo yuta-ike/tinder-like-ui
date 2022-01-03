@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { MutableRefObject, RefObject, useEffect, useRef, useState } from "react"
 import { throttle } from "throttle-debounce"
 import { easeOut } from "../utils/animation"
 import { isIOSChrome } from "../utils/userAgentCheck"
@@ -11,7 +11,10 @@ export type SwipeCardProps = {
   border?: number
   className?: string
   disableAction?: boolean
-}
+  rightButtonRef?: RefObject<HTMLButtonElement>
+  leftButtonRef?: RefObject<HTMLButtonElement>
+  cardRef?: MutableRefObject<HTMLDivElement | null>
+} & React.ComponentProps<"div">
 
 const SwipeCard: React.VFC<SwipeCardProps> = ({
   children,
@@ -21,6 +24,10 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
   border = 0.2,
   className,
   disableAction,
+  rightButtonRef,
+  leftButtonRef,
+  cardRef,
+  ...divProps
 }) => {
   const [isDragging, setIsDragging] = useState(false)
   const [swipeResult, setSwipeResult] = useState<"left" | "right" | null>(null)
@@ -55,6 +62,21 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
     return () => document.removeEventListener("pointermove", callback)
   }, [isDragging, disableAction, swipeResult])
 
+  const swipeDone = (isRight: boolean) => {
+    setTimeout(() => {
+      dragBasePosX.current = null
+      if (isRight) {
+        onSwipeRight?.()
+        setSwipeResult("right")
+        setDragProcess(1.0)
+      } else {
+        onSwipeLeft?.()
+        setSwipeResult("left")
+        setDragProcess(-1.0)
+      }
+    }, 0)
+  }
+
   useEffect(() => {
     if (disableAction) {
       return
@@ -66,18 +88,7 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
       setIsDragging(false)
 
       if (border < Math.abs(dragProcess)) {
-        setTimeout(() => {
-          dragBasePosX.current = null
-          if (dragProcess < 0) {
-            onSwipeLeft?.()
-            setSwipeResult("left")
-            setDragProcess(-1.0)
-          } else {
-            onSwipeRight?.()
-            setSwipeResult("right")
-            setDragProcess(1.0)
-          }
-        }, 0)
+        swipeDone(0 < dragProcess)
       } else {
         // NOTE: アニメーションを発火させるため
         setTimeout(() => {
@@ -105,18 +116,42 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
   }, [normalizedDragProcess, onDrag])
 
   return (
-    <div
-      onPointerDown={handleDragStart}
-      className={`flex touch-none ${
-        !isDragging ? (isIOSChrome() ? "" : "transition duration-1000") : "select-none"
-      } ${className}`}
-      style={{
-        transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,
-      }}
-      ref={cardWrapperRef}
-    >
-      {children}
-    </div>
+    <>
+      <div
+        {...divProps}
+        onPointerDown={handleDragStart}
+        className={`flex touch-none ${
+          !isDragging ? (isIOSChrome() ? "" : "transition duration-1000") : "select-none"
+        } ${className}`}
+        style={{
+          transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,
+        }}
+        ref={(elm) => {
+          cardWrapperRef.current = elm
+          if (cardRef != null) {
+            cardRef.current = elm
+          }
+        }}
+      >
+        {children}
+      </div>
+      <div className="flex justify-between sr-only focus-within:py-4 focus-within:not-sr-only">
+        <button
+          className="p-2 bg-gray-100 rounded"
+          ref={leftButtonRef}
+          onClick={() => swipeDone(false)}
+        >
+          左にスワイプ
+        </button>
+        <button
+          className="p-2 bg-gray-100 rounded"
+          ref={rightButtonRef}
+          onClick={() => swipeDone(true)}
+        >
+          右にスワイプ
+        </button>
+      </div>
+    </>
   )
 }
 

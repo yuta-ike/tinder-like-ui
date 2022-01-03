@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useRef } from "react"
 import { useState } from "react"
 import SwipeCard from "./SwipeCard"
 
@@ -9,6 +9,9 @@ export type SwipeCardDeckProps = {
 
 const SwipeCardDeck: React.VFC<SwipeCardDeckProps> = ({ render, count }) => {
   const [index, setIndex] = useState(0)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  // const rightButtonRef = useRef<HTMLButtonElement | null>(null)
+  // const leftButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const goNextItem = () => {
     setIndex((prev) => {
@@ -18,11 +21,19 @@ const SwipeCardDeck: React.VFC<SwipeCardDeckProps> = ({ render, count }) => {
       }
       return prev + 1
     })
+    focusCurrentItem()
+  }
+
+  const focusCurrentItem = () => {
+    cardRef.current?.focus()
   }
 
   return (
     <div className="relative">
-      <div className="select-none">
+      {/* NOTE: focus trap */}
+      <div tabIndex={0} onFocus={focusCurrentItem} />
+
+      <div className="pointer-events-none select-none" aria-hidden>
         {Array(count)
           .fill(null)
           .slice(index + 1)
@@ -41,7 +52,17 @@ const SwipeCardDeck: React.VFC<SwipeCardDeckProps> = ({ render, count }) => {
       )}
       {/* current */}
       {index < count && (
-        <SwipeCard key={index} className="" onSwipeRight={goNextItem} onSwipeLeft={goNextItem}>
+        <SwipeCard
+          key={index}
+          className=""
+          onSwipeRight={goNextItem}
+          onSwipeLeft={goNextItem}
+          role="dialog"
+          cardRef={cardRef}
+          tabIndex={-1}
+          // rightButtonRef={rightButtonRef}
+          // leftButtonRef={leftButtonRef}
+        >
           {render(index, true)}
         </SwipeCard>
       )}

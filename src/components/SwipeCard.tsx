@@ -1,9 +1,6 @@
 import React, { useEffect, useRef, useState } from "react"
 import { throttle } from "throttle-debounce"
-
-const easeOutSine = (x: number) => {
-  return Math.sin((x * Math.PI) / 2)
-}
+import { easeOut } from "../utils/animation"
 
 export type SwipeCardProps = {
   children: React.ReactNode
@@ -25,6 +22,7 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
   disableAction,
 }) => {
   const [isDragging, setIsDragging] = useState(false)
+  const [swipeResult, setSwipeResult] = useState<"left" | "right" | null>(null)
   const [dragProcess, setDragProcess] = useState<number>(0.0)
   const cardWrapperRef = useRef<HTMLDivElement | null>(null)
   const dragBasePosX = useRef<number | null>(null)
@@ -35,43 +33,49 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
     }
     setIsDragging(true)
     dragBasePosX.current = e.clientX
-    console.log("drag start")
   }
 
   useEffect(() => {
+    if (disableAction) {
+      return
+    }
     const callback = throttle(50, (e: any) => {
-      if (disableAction || !isDragging) {
+      if (!isDragging || swipeResult != null) {
         return
       }
-      console.log("dragging")
       const xDel = e.clientX - (dragBasePosX.current ?? 0)
       const process =
         cardWrapperRef.current?.clientWidth === 0
           ? 0
           : xDel / (cardWrapperRef.current?.clientWidth ?? 200)
       setDragProcess(process)
-      console.log("dragging", process)
     })
-    document.addEventListener("mousemove", callback)
-    return () => document.removeEventListener("mousemove", callback)
-  }, [isDragging, disableAction])
+    document.addEventListener("pointermove", callback)
+    return () => document.removeEventListener("pointermove", callback)
+  }, [isDragging, disableAction, swipeResult])
 
   useEffect(() => {
+    if (disableAction) {
+      return
+    }
     const callback = () => {
-      if (disableAction || !isDragging) {
+      if (!isDragging || swipeResult != null) {
         return
       }
       setIsDragging(false)
 
       if (border < Math.abs(dragProcess)) {
-        if (dragProcess < 0) {
-          onSwipeLeft?.()
-        } else {
-          onSwipeRight?.()
-        }
         setTimeout(() => {
           dragBasePosX.current = null
-          setDragProcess(dragProcess < 0 ? -1.0 : 1.0)
+          if (dragProcess < 0) {
+            onSwipeLeft?.()
+            setSwipeResult("left")
+            setDragProcess(-1.0)
+          } else {
+            onSwipeRight?.()
+            setSwipeResult("right")
+            setDragProcess(1.0)
+          }
         }, 0)
       } else {
         // NOTE: アニメーションを発火させるため
@@ -81,15 +85,19 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
         }, 0)
       }
     }
-    document.addEventListener("mouseup", callback)
-    return () => document.removeEventListener("mouseup", callback)
-  }, [isDragging, dragProcess, disableAction])
+    document.addEventListener("pointerup", callback)
+    return () => document.removeEventListener("pointerup", callback)
+  }, [isDragging, dragProcess, disableAction, swipeResult])
 
-  const normalizedDragProcess = Math.max(-1.0, Math.min(dragProcess, 1.0))
-  const x = easeOutSine(normalizedDragProcess) * (cardWrapperRef.current?.clientWidth ?? 200) * 0.75
-  const y =
-    easeOutSine(Math.abs(normalizedDragProcess)) * (cardWrapperRef.current?.clientHeight ?? 200)
-  const rotate = easeOutSine(normalizedDragProcess) * 45
+  const normalizedDragProcess =
+    swipeResult === "left"
+      ? -1
+      : swipeResult === "right"
+      ? 1
+      : Math.max(-1.0, Math.min(dragProcess, 1.0))
+  const x = easeOut(normalizedDragProcess) * (cardWrapperRef.current?.clientWidth ?? 200) * 0.75
+  const y = easeOut(Math.abs(normalizedDragProcess)) * (cardWrapperRef.current?.clientHeight ?? 200)
+  const rotate = easeOut(normalizedDragProcess) * 45
 
   useEffect(() => {
     onDrag?.(normalizedDragProcess)
@@ -97,8 +105,10 @@ const SwipeCard: React.VFC<SwipeCardProps> = ({
 
   return (
     <div
-      onMouseDown={handleDragStart}
-      className={`flex ${!isDragging ? "transition" : "select-none"} ${className}`}
+      onPointerDown={handleDragStart}
+      className={`flex touch-none ${
+        !isDragging ? "transition duration-1000" : "select-none"
+      } ${className}`}
       style={{
         transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,
       }}
